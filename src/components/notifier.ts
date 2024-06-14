@@ -43,10 +43,24 @@ class Notifier {
     private async getItemPage(URL: string) {
         const data = await this.fetchData(URL);
         const parsedData = parse(data);
-        const scripts = parsedData?.querySelectorAll('script').forEach((el) => {
+        parsedData?.querySelectorAll('script').forEach((el) => {
             const scriptElement = el as unknown as HTMLScriptElement;
-            if (scriptElement.src === '') {
-                console.log(scriptElement);
+            if (scriptElement.src === undefined) {
+                const inputRegex = /<input\b[^>]*>/gi;
+                const inputs = el.toString().match(inputRegex);
+                if (inputs !== null) {
+                    inputs.forEach((el) => {
+                        const valueRegex =
+                            /<input[^>]*\bname\s*=\s*["_']_token["_'][^>]*\bvalue\s*=\s*["_']([^"_']*)["_'][^>]*>/gi;
+                        if (el.match(valueRegex)) {
+                            const token = valueRegex.exec(el);
+                            if (token) {
+                                console.log(token[1]);
+                            }
+                        }
+                    });
+                }
+                return;
             }
         });
         process.exit(1);
