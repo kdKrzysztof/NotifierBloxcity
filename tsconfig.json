@@ -1,0 +1,26 @@
+{
+    "compilerOptions": {
+        "target": "ESNext",
+        "module": "CommonJS",
+        "moduleResolution": "node",
+        "esModuleInterop": true,
+        "forceConsistentCasingInFileNames": true,
+        "isolatedModules": true,
+        "strict": true,
+        "skipLibCheck": true,
+        "outDir": "./dist",
+        "baseUrl": "./",
+        "paths": {
+            "src/*": ["./src/*"],
+            "src": ["./src"],
+            "components/*": ["./src/components/*"],
+            "components": ["./src/components/"],
+            "utils/*": ["./src/utils/*"],
+            "utils": ["./src/utils/"]
+        }
+    },
+    "ts-node": {
+        "require": ["tsconfig-paths/register"]
+    },
+    "include": ["src/**/*.ts"]
+}

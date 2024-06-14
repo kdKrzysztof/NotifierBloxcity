@@ -1,0 +1,22 @@
+{
+    "name": "notifierbloxcity",
+    "version": "1.0.0",
+    "main": "./src/index.ts",
+    "scripts": {
+        "start": "ts-node src/index.ts"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "devDependencies": {
+        "@types/node": "^20.14.2",
+        "ts-node": "^10.9.2",
+        "tsconfig-paths": "^4.2.0",
+        "tslib": "^2.6.3",
+        "typescript": "^5.4.5"
+    },
+    "dependencies": {
+        "dotenv": "^16.4.5",
+        "node-html-parser": "^6.1.13"
+    }
+}
