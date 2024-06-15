@@ -9,7 +9,6 @@ class Notifier {
     private itemPriceCoins: number | undefined = undefined;
     private ItemURL: string | undefined = '';
     private Collectible: boolean = false;
-    private isPurchased: boolean = false;
     private token: string | undefined = '';
     private readonly marketURL: string = '';
     private readonly headers: Headers;
@@ -158,7 +157,6 @@ class Notifier {
             Coins: ${this.itemPriceCoins}, \n
             URL: ${this.ItemURL}, \n
             Collectible: ${this.Collectible}, \n
-            Purchased: ${this.isPurchased}
             `
         );
     }
