@@ -1,5 +1,6 @@
 import parse from 'node-html-parser';
 import newError from 'src/utils/newError';
+import getRandomArbitrary from 'src/utils/getRandomNumber';
 
 class Notifier {
     private latestItemURL: string = '';
@@ -13,11 +14,15 @@ class Notifier {
     private readonly marketURL: string = '';
     private readonly headers: Headers;
     private readonly cookie: string = '';
+    private readonly maxCash: number = 0;
+    private readonly maxCoins: number = 0;
 
-    constructor(iCookie: string, iHeaders: Headers, MarketURL: string) {
+    constructor(iCookie: string, iHeaders: Headers, MarketURL: string, iMaxCash: number, iMaxCoins: number) {
         this.cookie = iCookie;
         this.headers = iHeaders;
         this.marketURL = MarketURL;
+        this.maxCash = iMaxCash;
+        this.maxCoins = iMaxCoins;
         this.headers.append('cookie', this.cookie);
     }
 
@@ -26,6 +31,7 @@ class Notifier {
             const resp = await fetch(URL, {
                 method: 'GET',
                 headers: this.headers,
+                redirect: 'follow',
             });
 
             if (!resp.ok) {
@@ -35,35 +41,9 @@ class Notifier {
             const data = await resp.text();
             return data;
         } catch (err) {
-            console.error('Error while fetching data.');
+            console.error('Error occured while fetching data.');
             throw err;
         }
-    }
-
-    private async getItemPage(URL: string) {
-        const data = await this.fetchData(URL);
-        const parsedData = parse(data);
-        parsedData?.querySelectorAll('script').forEach((el) => {
-            const scriptElement = el as unknown as HTMLScriptElement;
-            if (scriptElement.src === undefined) {
-                const inputRegex = /<input\b[^>]*>/gi;
-                const inputs = el.toString().match(inputRegex);
-                if (inputs !== null) {
-                    inputs.forEach((el) => {
-                        const valueRegex =
-                            /<input[^>]*\bname\s*=\s*["_']_token["_'][^>]*\bvalue\s*=\s*["_']([^"_']*)["_'][^>]*>/gi;
-                        if (el.match(valueRegex)) {
-                            const token = valueRegex.exec(el);
-                            if (token) {
-                                console.log(token[1]);
-                            }
-                        }
-                    });
-                }
-                return;
-            }
-        });
-        process.exit(1);
     }
 
     private applyHeaders() {
@@ -80,10 +60,54 @@ class Notifier {
         if (this.token) {
             const urlencoded = new URLSearchParams();
             urlencoded.append('_token', this.token);
+            return urlencoded;
         }
 
         newError('_token is undefined.');
         return null;
+    }
+
+    private checkStatus(resp: Response) {
+        if (resp.status === 419) {
+            newError('CF session expired or token is invalid');
+        }
+
+        if (resp.status === 401) {
+            newError('Cookie expired');
+        }
+    }
+    private async getToken(URL: string) {
+        try {
+            const data = await this.fetchData(URL);
+            const parsedData = parse(data);
+            parsedData?.querySelectorAll('script').forEach((el) => {
+                const scriptElement = el as unknown as HTMLScriptElement;
+                if (scriptElement.src === undefined) {
+                    const inputRegex = /<input\b[^>]*>/gi;
+                    const inputs = el.toString().match(inputRegex);
+                    if (inputs !== null) {
+                        inputs.forEach((el) => {
+                            const valueRegex =
+                                /<input[^>]*\bname\s*=\s*["_']_token["_'][^>]*\bvalue\s*=\s*["_']([^"_']*)["_'][^>]*>/gi;
+                            if (el.match(valueRegex)) {
+                                const token = valueRegex.exec(el);
+                                if (token) {
+                                    this.token = token[1];
+                                    console.log('Token has been found');
+                                    return;
+                                }
+                                return;
+                            } else {
+                                return;
+                            }
+                        });
+                    }
+                }
+            });
+        } catch (err) {
+            console.error('An error occured while fetching token');
+            throw err;
+        }
     }
 
     private async buyItem(URL: string) {
@@ -97,23 +121,52 @@ class Notifier {
                 redirect: 'follow',
             };
 
-            if (this.itemPriceCash && this.itemPriceCash <= 10) {
-                const buy = await fetch(this.ItemURL + '/buy/1', requestOptions);
+            const time = getRandomArbitrary(1500, 3400) ?? 1838;
 
-                if (buy.status === 302) {
-                    newError('Cookie expired or headers not compatible');
+            console.log('trying to buy...');
+            setTimeout(async () => {
+                if (this.isPurchased) {
+                    console.log('Item is being owned');
+                    this.logDetails();
+                    return;
                 }
 
-                this.isPurchased = true;
-            }
+                if (!this.isPurchased && this.itemPriceCash && this.itemPriceCash <= this.maxCash) {
+                    console.log('trying to buy with cash');
+                    const buy = await fetch(this.ItemURL + '/buy/1', requestOptions);
+                    this.checkStatus(buy);
+
+                    this.isPurchased = true;
+                    console.log('Bought with cash');
+                    return;
+                }
+
+                if (
+                    !this.isPurchased &&
+                    !this.itemPriceCash &&
+                    this.itemPriceCoins &&
+                    this.itemPriceCoins <= this.maxCoins
+                ) {
+                    console.log('Trying to buy with coins');
+                    const buy = await fetch(this.ItemURL + '/buy/2', requestOptions);
+                    this.checkStatus(buy);
+
+                    this.isPurchased = true;
+                    console.log('Bought with coins');
+                    return;
+                }
+            }, time);
         } catch (err) {
-            throw new Error(`Error occured while performing purchase`);
+            console.error(`Error occured while performing purchase`);
+            throw err;
         }
     }
 
     private logDetails() {
         console.log(
-            `Name: ${this.itemName}, \n
+            `
+            Name: ${this.itemName}, \n
+            Sold out: ${!this.itemPriceCash && !this.itemPriceCoins ? true : false} \n
             Cash: ${this.itemPriceCash}, \n
             Coins: ${this.itemPriceCoins}, \n
             URL: ${this.ItemURL}, \n
@@ -123,53 +176,55 @@ class Notifier {
         );
     }
 
-    async startNotifier(time: number) {
-        setInterval(async () => {
-            const data = (await this.fetchData(this.marketURL)) ?? newError('Failed to use this.fetchData()');
-            const parsedData = parse(data);
+    async startNotifier() {
+        const data = (await this.fetchData(this.marketURL)) ?? newError('Failed to use this.fetchData()');
+        const parsedData = parse(data);
 
-            const itemCellPosition = 1;
-            const itemCell = parsedData.querySelectorAll('.market-item-cell')[itemCellPosition];
-            const itemDetails = itemCell?.querySelector('.market-item-name');
+        const itemCellPosition = 1;
+        const itemCell = parsedData.querySelectorAll('.market-item-cell')[itemCellPosition];
+        const itemDetails = itemCell?.querySelector('.market-item-name');
 
-            this.itemName = itemDetails?.innerText;
-            this.ItemURL = itemDetails?.getAttribute('href');
-            const cash = itemCell?.querySelector('.market-item-price-cash')?.innerText as string;
-            const coins = itemCell?.querySelector('.market-item-price-coins')?.innerText as string;
-            cash !== undefined ? (this.itemPriceCash = parseInt(cash)) : undefined;
-            coins !== undefined ? (this.itemPriceCoins = parseInt(coins)) : undefined;
+        this.itemName = itemDetails?.innerText;
+        this.ItemURL = itemDetails?.getAttribute('href');
+        const cash = itemCell?.querySelector('.market-item-price-cash')?.innerText as string;
+        const coins = itemCell?.querySelector('.market-item-price-coins')?.innerText as string;
+        cash !== undefined ? (this.itemPriceCash = parseInt(cash)) : undefined;
+        coins !== undefined ? (this.itemPriceCoins = parseInt(coins)) : undefined;
 
-            const isCollectible = itemCell.querySelector('.ribbon')?.innerText === 'Collectible' ? true : false;
+        this.Collectible = itemCell.querySelector('.ribbon')?.innerText === 'Collectible' ? true : false;
 
-            if (this.ItemURL === this.latestItemURL) {
-                console.log('searching...');
-                return;
-            }
+        if (!this.ItemURL) {
+            console.log('No item URL been found');
+            return;
+        }
 
-            if (this.ItemURL) {
-                console.log('getitng items page!!!');
-                await this.getItemPage(this.ItemURL);
-            }
+        if (this.ItemURL === this.latestItemURL) {
+            console.log('searching...');
+            return;
+        }
 
-            if (isCollectible && this.ItemURL) {
-                if (
-                    itemCell.querySelector('.market-item-price')?.innerText === 'Sold out' ||
-                    (this.itemPriceCash === undefined && this.itemPriceCoins === undefined)
-                ) {
-                    this.logDetails();
-                    console.log('Item sold out');
-                    return;
-                }
-                console.log(this.itemPriceCash, this.itemPriceCoins);
-            } else {
-                console.log('Item isnt a collectible or ItemURL doesnt exist');
+        if (this.Collectible && this.ItemURL) {
+            if (
+                itemCell.querySelector('.market-item-price')?.innerText === 'Sold out' ||
+                (this.itemPriceCash === undefined && this.itemPriceCoins === undefined)
+            ) {
                 this.logDetails();
+                console.log('Item sold out');
                 return;
             }
-
-            this.buyItem(this.ItemURL);
+        } else {
             this.logDetails();
-        }, time);
+            return;
+        }
+
+        if (this.ItemURL) {
+            console.log('getting token');
+            await this.getToken(this.ItemURL);
+        }
+
+        await this.buyItem(this.ItemURL);
+        this.logDetails();
+        return;
     }
 }
 
