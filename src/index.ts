@@ -9,6 +9,7 @@ const main = () => {
     const BLOXSESS = process.env.BLOXSESS ?? newError('BLOXSESS is undefined');
     const maxCash = 100;
     const maxCoins = 200;
+    const time = 8000;
 
     const cookie = `BLOXSESS=${BLOXSESS};`;
     const notifier = new Notifier(cookie, headers, marketURL, maxCash, maxCoins);
@@ -19,7 +20,7 @@ const main = () => {
         } catch (err) {
             console.error(err);
         }
-    }, 5000);
+    }, time);
 };
 
 main();

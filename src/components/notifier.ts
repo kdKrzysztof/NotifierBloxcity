@@ -122,10 +122,9 @@ class Notifier {
 
             const time = getRandomArbitrary(1500, 3400) ?? 1838;
 
-            console.log('trying to buy...');
             setTimeout(async () => {
                 if (this.itemPriceCash && this.itemPriceCash <= this.maxCash) {
-                    console.log('trying to buy with cash');
+                    console.log('Trying to buy with cash');
                     const buy = await fetch(this.ItemURL + '/buy/1', requestOptions);
                     this.checkStatus(buy);
 
@@ -165,7 +164,7 @@ class Notifier {
         const data = (await this.fetchData(this.marketURL)) ?? newError('Failed to use this.fetchData()');
         const parsedData = parse(data);
 
-        const itemCellPosition = 1;
+        const itemCellPosition = 0;
         const itemCell = parsedData.querySelectorAll('.market-item-cell')[itemCellPosition];
         const itemDetails = itemCell?.querySelector('.market-item-name');
 
@@ -188,6 +187,12 @@ class Notifier {
             return;
         }
 
+        if (!this.Collectible) {
+            console.log('Normal item');
+            this.logDetails();
+            return;
+        }
+
         if (this.Collectible && this.ItemURL) {
             if (
                 itemCell.querySelector('.market-item-price')?.innerText === 'Sold out' ||
@@ -197,9 +202,6 @@ class Notifier {
                 console.log('Item sold out');
                 return;
             }
-        } else {
-            this.logDetails();
-            return;
         }
 
         if (this.ItemURL) {
