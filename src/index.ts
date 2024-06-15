@@ -14,7 +14,11 @@ const main = () => {
     const notifier = new Notifier(cookie, headers, marketURL, maxCash, maxCoins);
 
     setInterval(async () => {
-        notifier.startNotifier();
+        try {
+            notifier.startNotifier();
+        } catch (err) {
+            console.error(err);
+        }
     }, 5000);
 };
 
