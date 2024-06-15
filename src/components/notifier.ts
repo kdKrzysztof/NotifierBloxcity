@@ -125,33 +125,20 @@ class Notifier {
 
             console.log('trying to buy...');
             setTimeout(async () => {
-                if (this.isPurchased) {
-                    console.log('Item is being owned');
-                    this.logDetails();
-                    return;
-                }
-
-                if (!this.isPurchased && this.itemPriceCash && this.itemPriceCash <= this.maxCash) {
+                if (this.itemPriceCash && this.itemPriceCash <= this.maxCash) {
                     console.log('trying to buy with cash');
                     const buy = await fetch(this.ItemURL + '/buy/1', requestOptions);
                     this.checkStatus(buy);
 
-                    this.isPurchased = true;
                     console.log('Bought with cash');
                     return;
                 }
 
-                if (
-                    !this.isPurchased &&
-                    !this.itemPriceCash &&
-                    this.itemPriceCoins &&
-                    this.itemPriceCoins <= this.maxCoins
-                ) {
+                if (!this.itemPriceCash && this.itemPriceCoins && this.itemPriceCoins <= this.maxCoins) {
                     console.log('Trying to buy with coins');
                     const buy = await fetch(this.ItemURL + '/buy/2', requestOptions);
                     this.checkStatus(buy);
 
-                    this.isPurchased = true;
                     console.log('Bought with coins');
                     return;
                 }
@@ -223,6 +210,7 @@ class Notifier {
         }
 
         await this.buyItem(this.ItemURL);
+        this.latestItemURL = this.ItemURL;
         this.logDetails();
         return;
     }
