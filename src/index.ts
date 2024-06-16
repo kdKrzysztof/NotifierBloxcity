@@ -14,6 +14,10 @@ const main = () => {
     const cookie = `BLOXSESS=${BLOXSESS};`;
     const notifier = new Notifier(cookie, headers, marketURL, maxCash, maxCoins);
 
+    (async () => {
+        await notifier.checkCookieStatus();
+    })();
+
     setInterval(async () => {
         try {
             notifier.startNotifier();

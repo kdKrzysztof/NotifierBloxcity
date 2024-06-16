@@ -72,9 +72,21 @@ class Notifier {
         }
 
         if (resp.status === 401) {
-            newError('Cookie expired');
+            newError('Cookie has expired');
         }
     }
+
+    async checkCookieStatus() {
+        const data = await this.fetchData('https://www.bloxcity.com/forum');
+        const parsed = parse(data);
+
+        if (!parsed.querySelectorAll('meta[name="user-data"]')) {
+            newError('Cookie has expired');
+        }
+
+        console.log('Cookie is valid');
+    }
+
     private async getToken(URL: string) {
         try {
             const data = await this.fetchData(URL);
@@ -193,7 +205,11 @@ class Notifier {
             return;
         }
 
-        if (this.Collectible && this.ItemURL) {
+        if (
+            this.Collectible &&
+            this.ItemURL &&
+            !itemCell.querySelector('.market-item-price')?.innerText.includes('Remaining')
+        ) {
             if (
                 itemCell.querySelector('.market-item-price')?.innerText === 'Sold out' ||
                 (this.itemPriceCash === undefined && this.itemPriceCoins === undefined)
