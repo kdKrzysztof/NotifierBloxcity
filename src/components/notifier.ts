@@ -77,10 +77,10 @@ class Notifier {
     }
 
     async checkCookieStatus() {
-        const data = await this.fetchData('https://www.bloxcity.com/forum');
+        const data = await this.fetchData('https://www.bloxcity.com/market');
         const parsed = parse(data);
 
-        if (!parsed.querySelectorAll('meta[name="user-data"]')) {
+        if (parsed.querySelectorAll('meta[name="user-data"]').length === 0) {
             newError('Cookie has expired');
         }
 
