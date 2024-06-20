@@ -103,9 +103,8 @@ class Notifier {
                                     return;
                                 }
                                 return;
-                            } else {
-                                return;
                             }
+                            return;
                         });
                     }
                 }
