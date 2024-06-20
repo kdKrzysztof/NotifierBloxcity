@@ -70,10 +70,6 @@ class Notifier {
         if (resp.status === 419) {
             newError('CF session expired or token is invalid');
         }
-
-        if (resp.status === 401) {
-            newError('Cookie has expired');
-        }
     }
 
     async checkCookieStatus() {
