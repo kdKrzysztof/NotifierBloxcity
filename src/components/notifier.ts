@@ -63,7 +63,6 @@ class Notifier {
         }
 
         newError('_token is undefined.');
-        return;
     }
 
     private checkStatus(resp: Response) {
