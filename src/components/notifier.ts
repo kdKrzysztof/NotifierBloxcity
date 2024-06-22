@@ -1,4 +1,5 @@
 import parse from 'node-html-parser';
+import type { HTMLElement } from 'node-html-parser';
 import newError from 'src/utils/newError';
 import getRandomArbitrary from 'src/utils/getRandomNumber';
 
@@ -10,22 +11,33 @@ class Notifier {
     private ItemURL: string | undefined = '';
     private Collectible: boolean = false;
     private token: string | undefined = '';
+    private iterationNumber: number = 1;
+    private iterationNumberCheck: number;
+    private maxIterationNumber: number;
     private readonly marketURL: string = '';
     private readonly headers: Headers;
     private readonly cookie: string = '';
     private readonly maxCash: number = 0;
     private readonly maxCoins: number = 0;
 
-    constructor(iCookie: string, iHeaders: Headers, MarketURL: string, iMaxCash: number, iMaxCoins: number) {
+    constructor(
+        iCookie: string,
+        iHeaders: Headers,
+        MarketURL: string,
+        iMaxCash: number,
+        iMaxCoins: number,
+        iIterationNumberLimit: number
+    ) {
         this.cookie = iCookie;
         this.headers = iHeaders;
         this.marketURL = MarketURL;
         this.maxCash = iMaxCash;
         this.maxCoins = iMaxCoins;
-        this.headers.append('cookie', this.cookie);
+        this.maxIterationNumber = iIterationNumberLimit;
+        this.iterationNumberCheck = this.maxIterationNumber;
     }
 
-    private async fetchData(URL: string) {
+    private async fetchData(URL: string): Promise<string> {
         try {
             const resp = await fetch(URL, {
                 method: 'GET',
@@ -45,14 +57,22 @@ class Notifier {
         }
     }
 
-    private applyHeaders() {
-        if (this.cookie && this.ItemURL) {
+    private applyHeaders(): void {
+        if (this.cookie) {
             this.headers.append('cookie', this.cookie);
-            this.headers.append('Referer', this.ItemURL);
+
+            if (this.ItemURL) {
+                this.headers.append('Referer', this.ItemURL);
+            }
             return;
         }
 
         newError('One or more important header settings doesnt exist');
+    }
+
+    private removeHeaders(): void {
+        this.headers.delete('cookie');
+        this.headers.delete('Referer');
     }
 
     private urlEncoded(): BodyInit | null | undefined {
@@ -65,24 +85,32 @@ class Notifier {
         newError('_token is undefined.');
     }
 
-    private checkStatus(resp: Response) {
+    private checkStatus(resp: Response): void {
         if (resp.status === 419) {
             newError('CF session expired or token is invalid');
         }
     }
 
-    async checkCookieStatus() {
-        const data = await this.fetchData('https://www.bloxcity.com/market');
-        const parsed = parse(data);
+    async checkCookieStatus(iParsedData?: HTMLElement): Promise<void> {
+        let parsedData = iParsedData;
 
-        if (parsed.querySelectorAll('meta[name="user-data"]').length === 0) {
+        if (!parsedData) {
+            console.log('Scraped data not found, fetching new data...');
+            this.applyHeaders();
+            const data = await this.fetchData('https://www.bloxcity.com/market');
+            parsedData = parse(data);
+            this.removeHeaders();
+            console.log('Scraped new data, parsedData applied');
+        }
+
+        if (parsedData && parsedData.querySelectorAll('meta[name="user-data"]').length === 0) {
             newError('Cookie has expired');
         }
 
         console.log('Cookie is valid');
     }
 
-    private async getToken(URL: string) {
+    private async getToken(URL: string): Promise<void> {
         try {
             const data = await this.fetchData(URL);
             const parsedData = parse(data);
@@ -115,7 +143,7 @@ class Notifier {
         }
     }
 
-    private async buyItem(URL: string) {
+    private async buyItem(URL: string): Promise<void> {
         try {
             this.applyHeaders();
 
@@ -126,7 +154,7 @@ class Notifier {
                 redirect: 'follow',
             };
 
-            const time = getRandomArbitrary(1500, 3400) ?? 1838;
+            const time = getRandomArbitrary(1100, 1900) ?? 1538;
 
             setTimeout(async () => {
                 if (this.itemPriceCash && this.itemPriceCash <= this.maxCash) {
@@ -153,7 +181,7 @@ class Notifier {
         }
     }
 
-    private logDetails() {
+    private logDetails(): void {
         console.log(
             `
             Name: ${this.itemName}, \n
@@ -166,22 +194,42 @@ class Notifier {
         );
     }
 
-    async startNotifier() {
-        const data = (await this.fetchData(this.marketURL)) ?? newError('Failed to use this.fetchData()');
-        const parsedData = parse(data);
-
-        const itemCellPosition = 0;
-        const itemCell = parsedData.querySelectorAll('.market-item-cell')[itemCellPosition];
+    private setItemDetails(itemCell: HTMLElement): void {
         const itemDetails = itemCell?.querySelector('.market-item-name');
 
         this.itemName = itemDetails?.innerText;
         this.ItemURL = itemDetails?.getAttribute('href');
-        const cash = itemCell?.querySelector('.market-item-price-cash')?.innerText as string;
-        const coins = itemCell?.querySelector('.market-item-price-coins')?.innerText as string;
-        cash !== undefined ? (this.itemPriceCash = parseInt(cash)) : undefined;
-        coins !== undefined ? (this.itemPriceCoins = parseInt(coins)) : undefined;
+        this.itemPriceCash = parseInt(itemCell?.querySelector('.market-item-price-cash')?.innerText as string);
+        this.itemPriceCoins = parseInt(itemCell?.querySelector('.market-item-price-coins')?.innerText as string);
 
         this.Collectible = itemCell.querySelector('.ribbon')?.innerText === 'Collectible' ? true : false;
+    }
+
+    private iterationChecker(parsedData: HTMLElement): void {
+        console.log(`Iteration number: ${this.iterationNumber}`);
+
+        if (this.iterationNumber === this.iterationNumberCheck) {
+            this.checkCookieStatus(parsedData);
+            this.iterationNumberCheck += this.maxIterationNumber;
+            console.log(`Another check at iteration number: ${this.iterationNumberCheck}`);
+        }
+
+        this.removeHeaders();
+        this.iterationNumber++;
+    }
+
+    async startNotifier(): Promise<void> {
+        if (this.iterationNumber === this.iterationNumberCheck) {
+            this.applyHeaders();
+        }
+
+        const data = (await this.fetchData(this.marketURL)) ?? newError('Failed to use this.fetchData()');
+        const parsedData = parse(data);
+        this.iterationChecker(parsedData);
+
+        const itemCellPosition = 0;
+        const itemCell = parsedData.querySelectorAll('.market-item-cell')[itemCellPosition];
+        this.setItemDetails(itemCell);
 
         if (!this.ItemURL) {
             console.log('No item URL been found');
@@ -220,6 +268,8 @@ class Notifier {
         }
 
         await this.buyItem(this.ItemURL);
+        this.removeHeaders();
+
         this.latestItemURL = this.ItemURL;
         this.logDetails();
         return;
