@@ -1,5 +1,6 @@
 import { headers } from 'components/headers';
 import Notifier from 'components/notifier';
+import Fetcher from 'components/fetcher';
 import newError from 'utils/newError';
 import env from 'dotenv';
 env.config();
@@ -12,8 +13,7 @@ const main = () => {
     const time = 5000;
     const cookieCheckTimeMinutes = 30;
     const cookieCheckTime = cookieCheckTimeMinutes * 60 * 1000;
-    // const iterationNumberLimit = cookieCheckTime / time;
-    const iterationNumberLimit = 5;
+    const iterationNumberLimit = cookieCheckTime / time;
 
     const cookie = `BLOXSESS=${BLOXSESS};`;
     const notifier = new Notifier(cookie, headers, marketURL, maxCash, maxCoins, iterationNumberLimit);
