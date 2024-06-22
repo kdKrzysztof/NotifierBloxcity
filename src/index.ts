@@ -1,11 +1,10 @@
-import { headers } from 'components/headers';
 import Notifier from 'components/notifier';
-import Fetcher from 'components/fetcher';
 import newError from 'utils/newError';
 import env from 'dotenv';
 env.config();
 
 const main = () => {
+    const headers = new Headers();
     const marketURL = process.env.MARKET_URL ?? newError('MarketURL is undefined.');
     const BLOXSESS = process.env.BLOXSESS ?? newError('BLOXSESS is undefined');
     const maxCash = 100;
