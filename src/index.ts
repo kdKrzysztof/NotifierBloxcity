@@ -11,7 +11,7 @@ const main = () => {
     const maxCash = 100;
     const maxCoins = 200;
     const time = 5000;
-    const cookieCheckTimeMinutes = 30;
+    const cookieCheckTimeMinutes = 30; //minutes;
     const cookieCheckTime = cookieCheckTimeMinutes * 60 * 1000;
     const iterationNumberLimit = cookieCheckTime / time;
 

@@ -15,13 +15,13 @@ class Buyer {
     async buyItem(URL: string, priceCash: number, priceCoins: number, token: string | undefined): Promise<void> {
         const buyWithCash = async () => {
             console.log('Trying to buy with cash');
-            await this.fetcher.postData(URL + '/buy/1', token);
+            await this.fetcher.postData(`${URL}/buy/1`, token);
             console.log('Bought with cash');
         };
 
         const buyWithCoins = async () => {
             console.log('Trying to buy with coins');
-            await this.fetcher.postData(URL + '/buy/2', token);
+            await this.fetcher.postData(`${URL}/buy/2`, token);
             console.log('Bought with coins');
         };
 
