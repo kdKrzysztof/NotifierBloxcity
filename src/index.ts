@@ -10,13 +10,22 @@ const main = () => {
     const cf_clearance = process.env.CF_CLEARANCE ?? newError('cf_clearance is undefined');
     const maxCash = 100;
     const maxCoins = 200;
-    const time = 5000;
+    const time = 8000;
     const cookieCheckTimeMinutes = 30; //minutes;
     const cookieCheckTime = cookieCheckTimeMinutes * 60 * 1000;
     const iterationNumberLimit = cookieCheckTime / time;
 
     const cookie = `BLOXSESS=${BLOXSESS}; cf_clearance=${cf_clearance}`;
-    const notifier = new Notifier(cookie, headers, marketURL, maxCash, maxCoins, iterationNumberLimit);
+    const cookieCfClearance = `cf_clearance=${cf_clearance}`;
+    const notifier = new Notifier(
+        cookie,
+        headers,
+        marketURL,
+        maxCash,
+        maxCoins,
+        iterationNumberLimit,
+        cookieCfClearance
+    );
 
     (async () => {
         await notifier.checkCookieStatus();

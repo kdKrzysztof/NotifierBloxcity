@@ -3,13 +3,15 @@ import newError from 'src/utils/newError';
 class Fetcher {
     private headers: Headers;
     private cookie: string;
+    private cf_clearance: string;
     private referer: string | undefined;
     private token: string | undefined = undefined;
 
-    constructor(headers: Headers, cookie: string, referer: string | undefined) {
+    constructor(headers: Headers, cookie: string, referer: string | undefined, cf_clearance: string) {
         this.headers = headers;
         this.cookie = cookie;
         this.referer = referer;
+        this.cf_clearance = cf_clearance;
     }
 
     async getData(URL: string): Promise<string> {
@@ -42,6 +44,14 @@ class Fetcher {
         }
 
         return resp;
+    }
+
+    applyCfClearance(): void {
+        if (this.cf_clearance) {
+            this.headers.append('cookie', this.cf_clearance);
+            return;
+        }
+        newError('cf_clearance doesnt exist');
     }
 
     applyHeaders(): void {

@@ -17,6 +17,7 @@ class Notifier {
     protected readonly marketURL: string;
     protected readonly headers: Headers;
     protected readonly cookie: string;
+    protected readonly cf_clearance: string;
     private readonly maxCash: number;
     private readonly maxCoins: number;
     private fetcher: Fetcher;
@@ -30,16 +31,18 @@ class Notifier {
         MarketURL: string,
         iMaxCash: number,
         iMaxCoins: number,
-        iIterationNumberLimit: number
+        iIterationNumberLimit: number,
+        iCf_clearance: string
     ) {
         this.cookie = iCookie;
         this.headers = iHeaders;
         this.marketURL = MarketURL;
         this.maxCash = iMaxCash;
         this.maxCoins = iMaxCoins;
+        this.cf_clearance = iCf_clearance;
         this.maxIterationNumber = iIterationNumberLimit;
         this.iterationNumberCheck = this.maxIterationNumber;
-        this.fetcher = new Fetcher(this.headers, this.cookie, this.ItemURL);
+        this.fetcher = new Fetcher(this.headers, this.cookie, this.ItemURL, this.cf_clearance);
         this.parser = new Parser();
         this.buyer = new Buyer(this.fetcher, this.maxCash, this.maxCoins);
         this.logger = new Logger();
@@ -95,6 +98,8 @@ class Notifier {
     }
 
     async startNotifier(): Promise<void> {
+        this.fetcher.applyCfClearance();
+
         if (this.iterationNumber === this.iterationNumberCheck) {
             this.fetcher.applyHeaders();
         }
